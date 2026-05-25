@@ -61,12 +61,13 @@ export function MultiplayerPage() {
       }
     });
 
-    socket.on('room:created', (data: { code: string; playerId: string }) => {
+    socket.on('room:created', (data: { code: string; playerId: string; player: MultiplayerPlayer }) => {
       setMyRoomCode(data.code);
       myRoomCodeRef.current = data.code;
       setMyPlayerId(data.playerId);
       myPlayerIdRef.current = data.playerId;
       setIsHost(true);
+      setPlayers([data.player]);
       setPhase('lobby-waiting');
     });
 
