@@ -35,4 +35,4 @@ services:
 
 volumes:
   sqlite-data:
-    driver: local
+    name: sqlite-data
