@@ -29,7 +29,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+RUN apk add --no-cache su-exec && \
+    addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
 COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=server-builder --chown=nodejs:nodejs /app/server/dist ./dist
@@ -38,11 +39,13 @@ COPY --from=client-builder --chown=nodejs:nodejs /app/server/public ./public
 # Data dir is /data (path.join(__dirname='dist/', '../../data') resolves to /data)
 RUN mkdir -p /data && chown nodejs:nodejs /data
 
-USER nodejs
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/leaderboard/unlimited || exit 1
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["node", "dist/index.js"]
