@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import confetti from 'canvas-confetti';
 import { RoundResult, LeaderboardEntry } from '../types';
 import { formatStars } from '../utils/scoring';
 
@@ -52,6 +53,21 @@ export function Scoreboard({ results, mode, date, onSubmitToLeaderboard, onPlayA
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
 
   const totalScore = results.reduce((s, r) => s + r.score, 0);
+
+  useEffect(() => {
+    if (totalScore === 0) return;
+    const ratio = totalScore / 5000;
+    // canvas-confetti floors particleCount, so keep it >= 1
+    const count = Math.max(1, Math.round(ratio * 5));
+    const duration = Math.max(500, Math.round(ratio * 3000));
+    const end = Date.now() + duration;
+    const frame = () => {
+      void confetti({ particleCount: count, angle: 60, spread: 55, origin: { x: 0 } });
+      void confetti({ particleCount: count, angle: 120, spread: 55, origin: { x: 1 } });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }, [totalScore]);
 
   const fetchLeaderboard = useCallback(async () => {
     try {

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@types/react-syntax-highlighter": "^15.5.13",
+    "canvas-confetti": "^1.9.4",
     "dompurify": "^3.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/dompurify": "^3.0.5",
     "@types/react": "^18.2.74",
     "@types/react-dom": "^18.2.24",
