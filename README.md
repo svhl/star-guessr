@@ -57,7 +57,7 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ### 4. Fetch the repo dataset
 
 **Warning: this takes 30–60 minutes** due to GitHub API rate limits (5,000 req/hr).  
-The script fetches ~10,000 most-starred non-fork repos with READMEs, file trees, and commit history.
+The script fetches ~3,000 most-starred non-fork repos with file trees and commit history.
 
 ```bash
 cd scripts

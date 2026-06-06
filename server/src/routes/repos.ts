@@ -21,6 +21,100 @@ function githubHeaders(): Record<string, string> {
     : { Accept: 'application/vnd.github+json' };
 }
 
+// filter out star history charts from README to prevent them from being used as hints in the game
+
+const STAR_HISTORY_API_MARKER = 'https://api.star-history.com';
+
+function findEnclosingBlockStart(lines: string[], fromIndex: number, startPattern: RegExp, endPattern: RegExp): number {
+  for (let index = fromIndex; index >= 0; index--) {
+    if (endPattern.test(lines[index])) {
+      break;
+    }
+    if (startPattern.test(lines[index])) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function findEnclosingBlockEnd(lines: string[], fromIndex: number, endPattern: RegExp): number {
+  for (let index = fromIndex; index < lines.length; index++) {
+    if (endPattern.test(lines[index])) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function buildProtectedCodeFenceLines(lines: string[]): boolean[] {
+  const protectedLines = new Array(lines.length).fill(false);
+  let openFenceLine = -1;
+
+  for (let index = 0; index < lines.length; index++) {
+    if (!/^```/.test(lines[index].trim())) {
+      continue;
+    }
+
+    if (openFenceLine === -1) {
+      openFenceLine = index;
+      continue;
+    }
+
+    for (let blockIndex = openFenceLine + 1; blockIndex < index; blockIndex++) {
+      protectedLines[blockIndex] = true;
+    }
+    openFenceLine = -1;
+  }
+
+  return protectedLines;
+}
+
+function sanitizeReadme(content: string): string {
+  const newline = content.includes('\r\n') ? '\r\n' : '\n';
+  const lines = content.split(/\r?\n/);
+  const protectedCodeFenceLines = buildProtectedCodeFenceLines(lines);
+  const replacements = new Map<number, string>();
+  const removeLine = new Array(lines.length).fill(false);
+
+  for (let index = 0; index < lines.length; index++) {
+    if (protectedCodeFenceLines[index]) {
+      continue;
+    }
+
+    if (!lines[index].includes(STAR_HISTORY_API_MARKER)) {
+      continue;
+    }
+
+    let start = findEnclosingBlockStart(lines, index, /<a\b/i, /<\/a>/i);
+    let end = start !== -1 ? findEnclosingBlockEnd(lines, index, /<\/a>/i) : -1;
+
+    if (start === -1 || end === -1) {
+      start = findEnclosingBlockStart(lines, index, /<picture\b/i, /<\/picture>/i);
+      end = start !== -1 ? findEnclosingBlockEnd(lines, index, /<\/picture>/i) : -1;
+    }
+
+    if (start === -1 || end === -1) {
+      removeLine[index] = true;
+      replacements.set(index, ';)');
+      continue;
+    }
+
+    replacements.set(start, ';)');
+    for (let blockIndex = start; blockIndex <= end; blockIndex++) {
+      removeLine[blockIndex] = true;
+    }
+  }
+
+  return lines
+    .flatMap((line, index) => {
+      if (!removeLine[index]) {
+        return [line];
+      }
+      return replacements.get(index) ? [replacements.get(index) as string] : [];
+    })
+    .join(newline);
+}
+
 const router = Router();
 
 router.get('/:id/readme', async (req: Request, res: Response) => {
@@ -42,7 +136,7 @@ router.get('/:id/readme', async (req: Request, res: Response) => {
   try {
     const { status, body } = await fetchRaw(url);
     if (status === 200) {
-      res.json({ content: body });
+      res.json({ content: sanitizeReadme(body) });
     } else {
       res.json({ content: '' });
     }
